@@ -2,8 +2,8 @@
 Backend logic for Meeting Summarizer
 ------------------------------------
 Handles:
-1. Audio transcription using Whisper
-2. Text summarization using Gemini 2.5 API
+1. Audio transcription using Whisper (lazy-loaded for Streamlit Cloud)
+2. Text summarization using Gemini API
 3. Saving results locally
 """
 
@@ -14,7 +14,6 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 
 # ---------------------- SETUP ----------------------
-
 # Load environment variables (Gemini API key)
 load_dotenv()
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
@@ -23,16 +22,20 @@ GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_KEY:
     genai.configure(api_key=GEMINI_KEY)
 else:
-    raise ValueError("❌ Gemini API key not found. Add it to your .env file.")
+    raise ValueError("❌ Gemini API key not found. Add it to your .env file or Streamlit Secrets.")
 
-# Optional: if low space on C:, store Whisper models in D:
-# os.environ["XDG_CACHE_HOME"] = "D:/whisper_cache"
+# ---------------------- LAZY MODEL SETUP ----------------------
+# Do not load Whisper on startup to avoid Streamlit Cloud memory crash
+whisper_model = None
 
-# Load Whisper model once at startup
-# Use "base" (~142MB) if disk space is low
-print("⏳ Loading Whisper model (small)...")
-whisper_model = whisper.load_model("base")
-print("✅ Whisper model loaded successfully.")
+def get_whisper_model():
+    """Load the Whisper model only when needed (lazy loading)."""
+    global whisper_model
+    if whisper_model is None:
+        print("⏳ Loading Whisper model (base)...")
+        whisper_model = whisper.load_model("base")
+        print("✅ Whisper model loaded successfully.")
+    return whisper_model
 
 
 # ---------------------- FUNCTION 1 ----------------------
@@ -41,8 +44,9 @@ def transcribe_audio(audio_path: str) -> str:
     Transcribe an audio file (mp3/wav) to text using Whisper.
     """
     try:
+        model = get_whisper_model()  # Load only when user uploads file
         print(f"🎧 Transcribing: {audio_path}")
-        result = whisper_model.transcribe(audio_path)
+        result = model.transcribe(audio_path)
         transcript = result["text"].strip()
         print("✅ Transcription complete.")
         return transcript
@@ -54,37 +58,30 @@ def transcribe_audio(audio_path: str) -> str:
 # ---------------------- FUNCTION 2 ----------------------
 def summarize_with_gemini(transcript: str) -> str:
     """
-    Summarize meeting transcript using Gemini 2.5 API.
+    Summarize meeting transcript using Gemini API.
     Returns a formatted text including Summary, Key Decisions, and Action Items.
     """
     if not transcript or transcript.strip() == "":
         return "No transcript text found."
 
     try:
-        print("🧠 Sending transcript to Gemini 2.5 for summarization...")
+        print("🧠 Sending transcript to Gemini for summarization...")
 
         prompt = f"""
         You are an expert meeting assistant. Analyze the following meeting transcript and produce:
         1. A concise **Summary** (4–6 lines)
         2. A clear list of **Key Decisions** made
         3. A structured list of **Action Items** (with responsible person and due date if mentioned)
-
+        
         Format output with clear headings: SUMMARY, DECISIONS, ACTION ITEMS.
 
         Transcript:
         {transcript}
         """
 
-        # ✅ Using Gemini 2.5 Flash (verified available for your key)
-        model = genai.GenerativeModel(model_name="models/gemini-2.5-flash")
-
-        response = model.generate_content(
-            contents=prompt,
-            generation_config={
-                "temperature": 0.7,
-                "max_output_tokens": 1024,
-            },
-        )
+        # ✅ Using stable Gemini 2.5 Flash model
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
+        response = model.generate_content(prompt)
 
         summary = response.text.strip() if response.text else "Error: Empty summary received."
         print("✅ Summary generated successfully.")
