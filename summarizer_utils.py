@@ -31,7 +31,7 @@ else:
 # Load Whisper model once at startup
 # Use "base" (~142MB) if disk space is low
 print("⏳ Loading Whisper model (small)...")
-whisper_model = whisper.load_model("small")
+whisper_model = whisper.load_model("base")
 print("✅ Whisper model loaded successfully.")
 
 
