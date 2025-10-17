@@ -1,0 +1,66 @@
+# ===========================
+# 🐍 Python / Streamlit Project
+# ===========================
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Byte-compiled / cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.log
+
+# Environment variables / secrets
+.env
+*.env
+
+# Output & cache folders
+outputs/
+whisper_cache/
+D:/whisper_cache/
+
+# Model cache (Whisper or other)
+*.pt
+
+# Audio or test files (optional)
+*.mp3
+*.wav
+*.m4a
+*.flac
+
+# Editor settings / temp files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook checkpoints (if you ever use notebooks)
+.ipynb_checkpoints/
+
+# Streamlit specific cache/config files
+.streamlit/secrets.toml
+.streamlit/cache/
+.streamlit/state/
+.streamlit/metrics/
+.streamlit/logs/
+
+# OS / misc temporary files
+*.bak
+*.swp
+*.tmp
+*.temp
+
+# ===========================
+# ✅ Keep these in Git
+# ===========================
+# streamlit_app.py
+# summarizer_utils.py
+# requirements.txt
+# .streamlit/config.toml
+# README.md
